@@ -1,0 +1,14 @@
+name: morning-digest
+label: Morning Digest
+category: email
+description: Summarizes unread emails from the last 24 hours
+inputs:
+  - name: time_range
+    description: Time range to look back
+    default: "24h"
+steps:
+  - id: fetch_emails
+    command: gws gmail messages list
+    args: ["--q", "is:unread newer_than:{time_range}", "--maxResults", "50"]
+output:
+  format: summary
