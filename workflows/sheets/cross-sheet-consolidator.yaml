@@ -1,0 +1,17 @@
+name: cross-sheet-consolidator
+label: Cross-Sheet Consolidator
+category: sheets
+description: Reads data from a spreadsheet across all its sheets and produces a consolidated summary
+inputs:
+  - name: spreadsheet_id
+    description: Google Sheets spreadsheet ID to consolidate
+    required: true
+steps:
+  - id: spreadsheet_info
+    command: gws sheets spreadsheets get
+    args: ["{spreadsheet_id}"]
+  - id: read_data
+    command: gws sheets spreadsheets values get
+    args: ["{spreadsheet_id}", "Sheet1"]
+output:
+  format: summary

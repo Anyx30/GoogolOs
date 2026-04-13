@@ -1,0 +1,17 @@
+name: data-cleanup
+label: Data Cleanup
+category: sheets
+description: Scans a Sheet for duplicates, empty required fields, and formatting issues
+inputs:
+  - name: spreadsheet_id
+    description: Google Sheets spreadsheet ID to audit
+    required: true
+  - name: sheet_name
+    description: Name of the sheet tab to audit
+    default: "Sheet1"
+steps:
+  - id: read_sheet
+    command: gws sheets spreadsheets values get
+    args: ["{spreadsheet_id}", "{sheet_name}"]
+output:
+  format: summary
