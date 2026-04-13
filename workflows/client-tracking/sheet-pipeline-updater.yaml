@@ -1,0 +1,20 @@
+name: sheet-pipeline-updater
+label: Sheet Pipeline Updater
+category: client-tracking
+description: Reads a Sheets-based tracker and flags rows with no update in the specified number of days
+inputs:
+  - name: spreadsheet_id
+    description: Google Sheets spreadsheet ID
+    required: true
+  - name: sheet_name
+    description: Name of the sheet tab to scan
+    default: "Sheet1"
+  - name: stale_days
+    description: Number of days without update to flag as stale
+    default: "7"
+steps:
+  - id: read_sheet
+    command: gws sheets spreadsheets values get
+    args: ["{spreadsheet_id}", "{sheet_name}"]
+output:
+  format: summary

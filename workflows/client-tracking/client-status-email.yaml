@@ -1,0 +1,20 @@
+name: client-status-email
+label: Client Status Email
+category: client-tracking
+description: Drafts a client-facing status update email from a Sheet row and recent email context
+inputs:
+  - name: spreadsheet_id
+    description: Google Sheets spreadsheet ID
+    required: true
+  - name: client_name
+    description: Client name to search for in emails
+    required: true
+steps:
+  - id: project_data
+    command: gws sheets spreadsheets values get
+    args: ["{spreadsheet_id}", "Sheet1"]
+  - id: client_emails
+    command: gws gmail messages list
+    args: ["--q", "{client_name} newer_than:14d", "--maxResults", "10"]
+output:
+  format: summary

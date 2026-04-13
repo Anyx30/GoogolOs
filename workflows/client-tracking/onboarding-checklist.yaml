@@ -1,0 +1,20 @@
+name: onboarding-checklist
+label: Onboarding Checklist
+category: client-tracking
+description: Creates a Drive folder and shared Sheet for a new client, and drafts a welcome email
+inputs:
+  - name: client_name
+    description: Name of the new client
+    required: true
+  - name: client_email
+    description: Client email address
+    required: true
+steps:
+  - id: create_folder
+    command: gws drive files create
+    args: ["--name", "{client_name}", "--mimeType", "application/vnd.google-apps.folder"]
+  - id: create_sheet
+    command: gws drive files create
+    args: ["--name", "{client_name} - Project Tracker", "--mimeType", "application/vnd.google-apps.spreadsheet"]
+output:
+  format: summary
