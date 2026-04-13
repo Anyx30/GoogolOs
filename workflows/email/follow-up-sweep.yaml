@@ -1,0 +1,14 @@
+name: follow-up-sweep
+label: Follow-up Sweep
+category: email
+description: Finds sent emails with no reply in the last 3-7 days and drafts follow-ups
+inputs:
+  - name: days_ago
+    description: How many days ago to check for unanswered sent emails
+    default: "5"
+steps:
+  - id: sent_emails
+    command: gws gmail messages list
+    args: ["--q", "in:sent newer_than:{days_ago}d", "--maxResults", "30"]
+output:
+  format: list

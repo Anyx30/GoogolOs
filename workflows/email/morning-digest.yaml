@@ -12,3 +12,4 @@ steps:
     args: ["--q", "is:unread newer_than:{time_range}", "--maxResults", "50"]
 output:
   format: summary
+
