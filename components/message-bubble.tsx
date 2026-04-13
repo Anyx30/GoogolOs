@@ -9,7 +9,7 @@ interface MessageBubbleProps {
 export function MessageBubble({ role, content }: MessageBubbleProps) {
   if (role === 'status') {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-400 py-1 px-4">
+      <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-gray-400 py-1 px-4">
         <span className="inline-block w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
         {content}
       </div>

@@ -142,6 +142,7 @@ export function ChatInterface({ selectedWorkflow, onWorkflowClear }: ChatInterfa
           <input
             ref={inputRef}
             type="text"
+            aria-label="Chat message"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
