@@ -1,0 +1,14 @@
+name: doc-summarizer
+label: Doc Summarizer
+category: docs
+description: Summarizes any Google Doc into a 5-bullet TL;DR
+inputs:
+  - name: doc_id
+    description: Google Doc ID to summarize
+    required: true
+steps:
+  - id: read_doc
+    command: gws docs documents get
+    args: ["{doc_id}"]
+output:
+  format: summary

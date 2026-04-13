@@ -1,0 +1,20 @@
+name: proposal-generator
+label: Proposal Generator
+category: docs
+description: Copies a proposal template Doc and renames it for a specific client
+inputs:
+  - name: template_doc_id
+    description: Google Doc ID of the proposal template
+    required: true
+  - name: client_name
+    description: Client name for the proposal
+    required: true
+  - name: project_scope
+    description: Brief description of project scope
+    required: true
+steps:
+  - id: copy_template
+    command: gws drive files copy
+    args: ["{template_doc_id}", "--name", "Proposal - {client_name}"]
+output:
+  format: summary

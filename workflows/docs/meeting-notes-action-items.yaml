@@ -1,0 +1,20 @@
+name: meeting-notes-action-items
+label: Meeting Notes to Action Items
+category: docs
+description: Reads a meeting notes Google Doc and extracts action items as a structured summary
+inputs:
+  - name: doc_id
+    description: Google Doc ID containing meeting notes
+    required: true
+  - name: spreadsheet_id
+    description: Google Sheets spreadsheet ID for tracking action items
+    required: true
+steps:
+  - id: read_doc
+    command: gws docs documents get
+    args: ["{doc_id}"]
+  - id: read_sheet
+    command: gws sheets spreadsheets values get
+    args: ["{spreadsheet_id}", "Action Items"]
+output:
+  format: summary

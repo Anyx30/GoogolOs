@@ -1,0 +1,20 @@
+name: template-cloner
+label: Template Cloner
+category: docs
+description: Duplicates a master template Doc into a new named file in a specified Drive folder
+inputs:
+  - name: template_doc_id
+    description: Google Doc ID of the template to clone
+    required: true
+  - name: new_name
+    description: Name for the new document
+    required: true
+  - name: folder_id
+    description: Google Drive folder ID where the new doc will be placed
+    required: true
+steps:
+  - id: copy_doc
+    command: gws drive files copy
+    args: ["{template_doc_id}", "--name", "{new_name}", "--parents", "{folder_id}"]
+output:
+  format: summary
