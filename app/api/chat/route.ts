@@ -9,7 +9,11 @@ function sseChunk(data: object): Uint8Array {
 }
 
 export async function POST(req: NextRequest) {
-  const { message } = (await req.json()) as { message: string };
+  const body = await req.json().catch(() => null);
+  if (!body?.message || typeof body.message !== 'string') {
+    return new Response('Bad Request', { status: 400 });
+  }
+  const { message } = body as { message: string };
 
   const stream = new ReadableStream({
     async start(controller) {
