@@ -1,0 +1,14 @@
+name: doc-snapshot
+label: Doc Snapshot
+category: admin
+description: Lists all Drive files created or modified recently
+inputs:
+  - name: days
+    description: Number of days to look back
+    default: "7"
+steps:
+  - id: recent_files
+    command: gws drive files list
+    args: ["--orderBy", "modifiedTime desc", "--pageSize", "50", "--fields", "files(id,name,mimeType,modifiedTime,owners)"]
+output:
+  format: list

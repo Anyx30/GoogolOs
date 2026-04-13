@@ -1,0 +1,14 @@
+name: time-audit
+label: Time Audit
+category: admin
+description: Breaks down how many hours were spent in meetings vs. focus time over the past week
+inputs:
+  - name: days
+    description: Number of days to analyze
+    default: "7"
+steps:
+  - id: all_events
+    command: gws calendar events list
+    args: ["--calendarId", "primary", "--maxResults", "100", "--orderBy", "startTime", "--singleEvents"]
+output:
+  format: summary

@@ -1,0 +1,17 @@
+name: weekly-standup-report
+label: Weekly Standup Report
+category: admin
+description: Summarizes calendar events and emails from the past week into a standup report
+inputs:
+  - name: days
+    description: Number of days to look back
+    default: "7"
+steps:
+  - id: week_events
+    command: gws calendar events list
+    args: ["--calendarId", "primary", "--maxResults", "50", "--orderBy", "startTime", "--singleEvents"]
+  - id: week_emails
+    command: gws gmail messages list
+    args: ["--q", "newer_than:{days}d", "--maxResults", "50"]
+output:
+  format: summary
