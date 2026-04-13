@@ -2,8 +2,14 @@ import Anthropic from '@anthropic-ai/sdk';
 import { IntentMatch } from '@/types';
 import { listWorkflows } from './workflow-engine';
 
+let _client: Anthropic | null = null;
+function getClient(): Anthropic {
+  if (!_client) _client = new Anthropic();
+  return _client;
+}
+
 export async function routeIntent(userMessage: string): Promise<IntentMatch> {
-  const client = new Anthropic();
+  const client = getClient();
   const workflows = listWorkflows();
   const workflowList = workflows
     .map(w => `- ${w.name}: ${w.description}`)
@@ -31,8 +37,8 @@ Extract params from the user message. Use workflow defaults for missing params.`
     ],
   });
 
-  const text =
-    response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+  const block = response.content[0];
+  const text = block?.type === 'text' ? block.text.trim() : '';
 
   try {
     return JSON.parse(text) as IntentMatch;
