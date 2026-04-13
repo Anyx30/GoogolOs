@@ -62,7 +62,7 @@ export async function executeWorkflow(
   const resolvedParams = { ...params };
 
   for (const input of config.inputs) {
-    if (!resolvedParams[input.name] && input.default) {
+    if (!(input.name in resolvedParams) && input.default !== undefined) {
       resolvedParams[input.name] = input.default;
     }
   }
@@ -82,7 +82,7 @@ export async function executeWorkflow(
           ...(typeof item === 'object' && item !== null ? (item as Record<string, string>) : {}),
         };
         const resolvedArgs = resolveArgs(step.args, itemParams, stepResultMap);
-        const cmdParts = [...step.command.replace('gws ', '').split(' '), ...resolvedArgs];
+        const cmdParts = [...step.command.replace(/^gws\s+/, '').split(/\s+/), ...resolvedArgs];
         const result = await runGwsCommand(cmdParts);
         results.push(result);
       }
@@ -91,7 +91,7 @@ export async function executeWorkflow(
       stepResults.push({ stepId: step.id, data: results });
     } else {
       const resolvedArgs = resolveArgs(step.args, resolvedParams, stepResultMap);
-      const cmdParts = [...step.command.replace('gws ', '').split(' '), ...resolvedArgs];
+      const cmdParts = [...step.command.replace(/^gws\s+/, '').split(/\s+/), ...resolvedArgs];
       const result = await runGwsCommand(cmdParts);
       stepResultMap[step.id] = result;
       stepResults.push({ stepId: step.id, data: result });
