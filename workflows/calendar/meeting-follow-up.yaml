@@ -1,0 +1,11 @@
+name: meeting-follow-up
+label: Meeting Follow-up
+category: calendar
+description: Retrieves your most recent meeting and helps draft a follow-up email with action items
+inputs: []
+steps:
+  - id: recent_meetings
+    command: gws calendar events list
+    args: ["--calendarId", "primary", "--maxResults", "5", "--orderBy", "startTime", "--singleEvents", "--timeMax", "now"]
+output:
+  format: summary

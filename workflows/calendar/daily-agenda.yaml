@@ -1,0 +1,11 @@
+name: daily-agenda
+label: Daily Agenda
+category: calendar
+description: Shows all of today's meetings with times and attendees
+inputs: []
+steps:
+  - id: todays_events
+    command: gws calendar events list
+    args: ["--calendarId", "primary", "--maxResults", "20", "--orderBy", "startTime", "--singleEvents", "--timeMin", "now"]
+output:
+  format: list

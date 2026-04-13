@@ -1,0 +1,14 @@
+name: meeting-prep-brief
+label: Meeting Prep Brief
+category: calendar
+description: Pulls upcoming meeting details including attendees and agenda
+inputs:
+  - name: max_results
+    description: Maximum number of upcoming meetings to show
+    default: "5"
+steps:
+  - id: upcoming_events
+    command: gws calendar events list
+    args: ["--calendarId", "primary", "--maxResults", "{max_results}", "--orderBy", "startTime", "--singleEvents", "--timeMin", "now"]
+output:
+  format: summary
