@@ -12,13 +12,9 @@ export async function runGwsCommand(
   const command = `gws ${args.join(' ')}`;
 
   return new Promise((resolve, reject) => {
-    exec(command, { timeout }, (error, stdout, stderr) => {
+    exec(command, { timeout }, (error, stdout) => {
       if (error) {
         reject(error);
-        return;
-      }
-      if (stderr) {
-        reject(new Error(`GWS CLI error: ${stderr}`));
         return;
       }
       try {
