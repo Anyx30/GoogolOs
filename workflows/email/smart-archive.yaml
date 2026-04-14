@@ -5,13 +5,22 @@ description: Lists emails that can be archived (newsletters, receipts, notificat
 inputs: []
 steps:
   - id: newsletters
-    command: gws gmail messages list
-    args: ["--q", "unsubscribe in:inbox", "--maxResults", "30"]
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: "unsubscribe in:inbox"
+      maxResults: 30
   - id: receipts
-    command: gws gmail messages list
-    args: ["--q", "receipt OR \"order confirmation\" in:inbox", "--maxResults", "20"]
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: "receipt OR order confirmation in:inbox"
+      maxResults: 20
   - id: notifications
-    command: gws gmail messages list
-    args: ["--q", "noreply in:inbox", "--maxResults", "20"]
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: "noreply in:inbox"
+      maxResults: 20
 output:
   format: list

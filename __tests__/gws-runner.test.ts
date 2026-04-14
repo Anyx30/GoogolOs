@@ -1,40 +1,41 @@
 import { runGwsCommand } from '@/lib/gws-runner';
 
 jest.mock('child_process', () => ({
-  exec: jest.fn(),
+  execFile: jest.fn(),
 }));
 
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 
-const mockExec = exec as unknown as jest.Mock;
+const mockExecFile = execFile as unknown as jest.Mock;
 
 describe('runGwsCommand', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('executes gws command and returns parsed JSON', async () => {
-    mockExec.mockImplementation((_cmd: string, _opts: object, cb: (...args: unknown[]) => void) => {
+    mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: object, cb: (...args: unknown[]) => void) => {
       cb(null, JSON.stringify({ messages: [{ id: 'abc', snippet: 'Hello' }] }), '');
     });
 
-    const result = await runGwsCommand(['gmail', 'messages', 'list', '--maxResults', '5']);
+    const result = await runGwsCommand(['gmail', 'users', 'messages', 'list', '--params', '{"userId":"me"}']);
     expect(result).toEqual({ messages: [{ id: 'abc', snippet: 'Hello' }] });
   });
 
-  it('constructs the correct gws command string', async () => {
-    mockExec.mockImplementation((_cmd: string, _opts: object, cb: (...args: unknown[]) => void) => {
+  it('calls execFile with gws binary and args array', async () => {
+    mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: object, cb: (...args: unknown[]) => void) => {
       cb(null, '{}', '');
     });
 
-    await runGwsCommand(['calendar', 'events', 'list', '--calendarId', 'primary']);
-    expect(mockExec).toHaveBeenCalledWith(
-      'gws calendar events list --calendarId primary',
+    await runGwsCommand(['calendar', 'events', 'list', '--params', '{"calendarId":"primary"}']);
+    expect(mockExecFile).toHaveBeenCalledWith(
+      'gws',
+      ['calendar', 'events', 'list', '--params', '{"calendarId":"primary"}'],
       expect.any(Object),
       expect.any(Function)
     );
   });
 
   it('returns raw string when output is not JSON', async () => {
-    mockExec.mockImplementation((_cmd: string, _opts: object, cb: (...args: unknown[]) => void) => {
+    mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: object, cb: (...args: unknown[]) => void) => {
       cb(null, 'plain text output', '');
     });
 
@@ -42,8 +43,8 @@ describe('runGwsCommand', () => {
     expect(result).toBe('plain text output');
   });
 
-  it('throws when exec reports an error', async () => {
-    mockExec.mockImplementation((_cmd: string, _opts: object, cb: (...args: unknown[]) => void) => {
+  it('throws when execFile reports an error', async () => {
+    mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: object, cb: (...args: unknown[]) => void) => {
       cb(new Error('command not found'), '', '');
     });
 

@@ -12,9 +12,13 @@ inputs:
 steps:
   - id: create_folder
     command: gws drive files create
-    args: ["--name", "{client_name}", "--mimeType", "application/vnd.google-apps.folder"]
+    body:
+      name: "{client_name}"
+      mimeType: "application/vnd.google-apps.folder"
   - id: create_sheet
     command: gws drive files create
-    args: ["--name", "{client_name} - Project Tracker", "--mimeType", "application/vnd.google-apps.spreadsheet"]
+    body:
+      name: "{client_name} - Project Tracker"
+      mimeType: "application/vnd.google-apps.spreadsheet"
 output:
   format: summary

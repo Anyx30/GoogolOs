@@ -9,6 +9,10 @@ inputs:
 steps:
   - id: upcoming_events
     command: gws calendar events list
-    args: ["--calendarId", "primary", "--maxResults", "{max_results}", "--orderBy", "startTime", "--singleEvents", "--timeMin", "now"]
+    params:
+      calendarId: "primary"
+      maxResults: "{max_results}"
+      orderBy: "startTime"
+      singleEvents: true
 output:
   format: summary

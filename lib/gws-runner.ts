@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 
 export interface GwsRunnerOptions {
   timeout?: number;
@@ -9,10 +9,9 @@ export async function runGwsCommand(
   options: GwsRunnerOptions = {}
 ): Promise<unknown> {
   const { timeout = 30000 } = options;
-  const command = `gws ${args.join(' ')}`;
 
   return new Promise((resolve, reject) => {
-    exec(command, { timeout }, (error, stdout) => {
+    execFile('gws', args, { timeout }, (error, stdout) => {
       if (error) {
         reject(error);
         return;

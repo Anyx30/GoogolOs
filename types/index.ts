@@ -8,7 +8,9 @@ export interface WorkflowInput {
 export interface WorkflowStep {
   id: string;
   command: string;
-  args: string[];
+  args?: string[];
+  params?: Record<string, unknown>;
+  body?: Record<string, unknown>;
   foreach?: string;
 }
 

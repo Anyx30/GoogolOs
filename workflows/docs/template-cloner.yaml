@@ -15,6 +15,11 @@ inputs:
 steps:
   - id: copy_doc
     command: gws drive files copy
-    args: ["{template_doc_id}", "--name", "{new_name}", "--parents", "{folder_id}"]
+    params:
+      fileId: "{template_doc_id}"
+    body:
+      name: "{new_name}"
+      parents:
+        - "{folder_id}"
 output:
   format: summary

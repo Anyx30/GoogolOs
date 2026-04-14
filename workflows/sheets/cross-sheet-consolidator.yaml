@@ -9,9 +9,12 @@ inputs:
 steps:
   - id: spreadsheet_info
     command: gws sheets spreadsheets get
-    args: ["{spreadsheet_id}"]
+    params:
+      spreadsheetId: "{spreadsheet_id}"
   - id: read_data
     command: gws sheets spreadsheets values get
-    args: ["{spreadsheet_id}", "Sheet1"]
+    params:
+      spreadsheetId: "{spreadsheet_id}"
+      range: "Sheet1"
 output:
   format: summary

@@ -6,6 +6,10 @@ inputs: []
 steps:
   - id: recent_meetings
     command: gws calendar events list
-    args: ["--calendarId", "primary", "--maxResults", "5", "--orderBy", "startTime", "--singleEvents", "--timeMax", "now"]
+    params:
+      calendarId: "primary"
+      maxResults: 5
+      orderBy: "startTime"
+      singleEvents: true
 output:
   format: summary

@@ -9,6 +9,7 @@ inputs:
 steps:
   - id: read_doc
     command: gws docs documents get
-    args: ["{doc_id}"]
+    params:
+      documentId: "{doc_id}"
 output:
   format: summary

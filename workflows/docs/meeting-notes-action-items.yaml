@@ -12,9 +12,12 @@ inputs:
 steps:
   - id: read_doc
     command: gws docs documents get
-    args: ["{doc_id}"]
+    params:
+      documentId: "{doc_id}"
   - id: read_sheet
     command: gws sheets spreadsheets values get
-    args: ["{spreadsheet_id}", "Action Items"]
+    params:
+      spreadsheetId: "{spreadsheet_id}"
+      range: "Action Items"
 output:
   format: summary

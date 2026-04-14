@@ -15,6 +15,9 @@ inputs:
 steps:
   - id: copy_template
     command: gws drive files copy
-    args: ["{template_doc_id}", "--name", "Proposal - {client_name}"]
+    params:
+      fileId: "{template_doc_id}"
+    body:
+      name: "Proposal - {client_name}"
 output:
   format: summary

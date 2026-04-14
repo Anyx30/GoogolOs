@@ -8,8 +8,10 @@ inputs:
     default: "24h"
 steps:
   - id: fetch_emails
-    command: gws gmail messages list
-    args: ["--q", "is:unread newer_than:{time_range}", "--maxResults", "50"]
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: "is:unread newer_than:{time_range}"
+      maxResults: 50
 output:
   format: summary
-

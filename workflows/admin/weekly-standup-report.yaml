@@ -9,9 +9,16 @@ inputs:
 steps:
   - id: week_events
     command: gws calendar events list
-    args: ["--calendarId", "primary", "--maxResults", "50", "--orderBy", "startTime", "--singleEvents"]
+    params:
+      calendarId: "primary"
+      maxResults: 50
+      orderBy: "startTime"
+      singleEvents: true
   - id: week_emails
-    command: gws gmail messages list
-    args: ["--q", "newer_than:{days}d", "--maxResults", "50"]
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: "newer_than:{days}d"
+      maxResults: 50
 output:
   format: summary

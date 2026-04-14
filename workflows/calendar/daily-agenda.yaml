@@ -6,6 +6,10 @@ inputs: []
 steps:
   - id: todays_events
     command: gws calendar events list
-    args: ["--calendarId", "primary", "--maxResults", "20", "--orderBy", "startTime", "--singleEvents", "--timeMin", "now"]
+    params:
+      calendarId: "primary"
+      maxResults: 20
+      orderBy: "startTime"
+      singleEvents: true
 output:
   format: list

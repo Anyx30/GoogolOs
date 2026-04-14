@@ -42,7 +42,7 @@ describe('executeWorkflow', () => {
     expect(result.steps).toHaveLength(1);
     expect(result.steps[0].stepId).toBe('fetch_emails');
     expect(mockRun).toHaveBeenCalledWith(
-      ['gmail', 'messages', 'list', '--q', 'is:unread newer_than:12h', '--maxResults', '50']
+      ['gmail', 'users', 'messages', 'list', '--params', expect.stringContaining('"q":"is:unread newer_than:12h"')]
     );
   });
 

@@ -54,6 +54,44 @@ function resolveArgs(
   );
 }
 
+function resolveValue(
+  value: unknown,
+  resolvedParams: Record<string, string>,
+  stepResultMap: Record<string, unknown>
+): unknown {
+  if (typeof value === 'string') {
+    const substituted = value
+      .replace(/\{(\w+)\}/g, (_, key) => resolvedParams[key] ?? '')
+      .replace(/\{(\w+)\.(\w+)\}/g, (_, stepId, field) => {
+        const result = stepResultMap[stepId];
+        if (result && typeof result === 'object' && !Array.isArray(result)) {
+          return String((result as Record<string, unknown>)[field] ?? '');
+        }
+        return '';
+      });
+    // Coerce to number if result is purely numeric
+    if (/^\d+$/.test(substituted.trim())) return parseInt(substituted, 10);
+    if (/^\d+\.\d+$/.test(substituted.trim())) return parseFloat(substituted);
+    return substituted;
+  }
+  if (Array.isArray(value)) {
+    return value.map(item => resolveValue(item, resolvedParams, stepResultMap));
+  }
+  return value; // boolean, number, null — keep as-is
+}
+
+function resolveParamObject(
+  params: Record<string, unknown>,
+  resolvedParams: Record<string, string>,
+  stepResultMap: Record<string, unknown>
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(params)) {
+    result[key] = resolveValue(val, resolvedParams, stepResultMap);
+  }
+  return result;
+}
+
 export async function executeWorkflow(
   name: string,
   params: Record<string, string> = {}
@@ -81,8 +119,24 @@ export async function executeWorkflow(
           ...resolvedParams,
           ...(typeof item === 'object' && item !== null ? (item as Record<string, string>) : {}),
         };
-        const resolvedArgs = resolveArgs(step.args, itemParams, stepResultMap);
-        const cmdParts = [...step.command.replace(/^gws\s+/, '').split(/\s+/), ...resolvedArgs];
+        // Build command parts
+        let cmdParts: string[];
+        if (step.params !== undefined || step.body !== undefined) {
+          cmdParts = step.command.replace(/^gws\s+/, '').split(/\s+/);
+          if (step.params) {
+            const resolvedParamObj = resolveParamObject(step.params, itemParams, stepResultMap);
+            cmdParts.push('--params', JSON.stringify(resolvedParamObj));
+          }
+          if (step.body) {
+            const resolvedBody = resolveParamObject(step.body, itemParams, stepResultMap);
+            cmdParts.push('--json', JSON.stringify(resolvedBody));
+          }
+        } else if (step.args) {
+          const resolvedArgs = resolveArgs(step.args, itemParams, stepResultMap);
+          cmdParts = [...step.command.replace(/^gws\s+/, '').split(/\s+/), ...resolvedArgs];
+        } else {
+          cmdParts = step.command.replace(/^gws\s+/, '').split(/\s+/);
+        }
         const result = await runGwsCommand(cmdParts);
         results.push(result);
       }
@@ -90,8 +144,24 @@ export async function executeWorkflow(
       stepResultMap[step.id] = results;
       stepResults.push({ stepId: step.id, data: results });
     } else {
-      const resolvedArgs = resolveArgs(step.args, resolvedParams, stepResultMap);
-      const cmdParts = [...step.command.replace(/^gws\s+/, '').split(/\s+/), ...resolvedArgs];
+      // Build command parts
+      let cmdParts: string[];
+      if (step.params !== undefined || step.body !== undefined) {
+        cmdParts = step.command.replace(/^gws\s+/, '').split(/\s+/);
+        if (step.params) {
+          const resolvedParamObj = resolveParamObject(step.params, resolvedParams, stepResultMap);
+          cmdParts.push('--params', JSON.stringify(resolvedParamObj));
+        }
+        if (step.body) {
+          const resolvedBody = resolveParamObject(step.body, resolvedParams, stepResultMap);
+          cmdParts.push('--json', JSON.stringify(resolvedBody));
+        }
+      } else if (step.args) {
+        const resolvedArgs = resolveArgs(step.args, resolvedParams, stepResultMap);
+        cmdParts = [...step.command.replace(/^gws\s+/, '').split(/\s+/), ...resolvedArgs];
+      } else {
+        cmdParts = step.command.replace(/^gws\s+/, '').split(/\s+/);
+      }
       const result = await runGwsCommand(cmdParts);
       stepResultMap[step.id] = result;
       stepResults.push({ stepId: step.id, data: result });
