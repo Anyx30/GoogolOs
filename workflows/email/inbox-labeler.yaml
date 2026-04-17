@@ -1,0 +1,9 @@
+name: inbox-labeler
+label: Inbox Labeler
+category: email
+description: Scans recent unlabeled emails and applies the correct label based on sender and subject rules
+inputs:
+  - name: max_emails
+    description: Maximum number of emails to scan per run
+    default: "200"
+steps: []
