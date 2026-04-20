@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listWorkflows, executeWorkflow, loadWorkflow } from '@/lib/workflow-engine';
 import { formatWorkflowResult } from '@/lib/response-formatter';
-import { runInboxLabeler } from '@/lib/inbox-labeler';
 
 export async function GET() {
   const workflows = listWorkflows();
@@ -17,16 +16,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Native workflows that bypass the YAML engine
-    if (name === 'inbox-labeler') {
-      const maxEmails = params?.max_emails ? parseInt(params.max_emails, 10) : 200;
-      const { summary } = await runInboxLabeler(maxEmails);
-      return NextResponse.json({ result: summary });
-    }
-
     const config = loadWorkflow(name);
     const result = await executeWorkflow(name, params ?? {});
-    const formatted = await formatWorkflowResult(config.label, result.raw);
+    let formatted: string;
+    try {
+      formatted = await formatWorkflowResult(config.label, result.raw);
+    } catch {
+      formatted = '```json\n' + JSON.stringify(result.raw, null, 2) + '\n```';
+    }
     return NextResponse.json({ result: formatted, raw: result.raw });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

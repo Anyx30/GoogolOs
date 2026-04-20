@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
           controller.enqueue(sseChunk({ type: 'status', text: `Running command...` }));
 
           const cmdParts = intent.gwsCommand.replace(/^gws\s+/, '').split(/\s+/);
+          if (intent.gwsParams) cmdParts.push('--params', JSON.stringify(intent.gwsParams));
+          if (intent.gwsBody) cmdParts.push('--json', JSON.stringify(intent.gwsBody));
           const raw = await runGwsCommand(cmdParts);
           const formatted = await formatGeneralCommandResult(intent.gwsCommand, raw);
           controller.enqueue(sseChunk({ type: 'result', text: formatted }));

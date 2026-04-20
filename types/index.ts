@@ -12,6 +12,7 @@ export interface WorkflowStep {
   params?: Record<string, unknown>;
   body?: Record<string, unknown>;
   foreach?: string;
+  skip_if_empty?: string; // body field name — skip step if it resolves to an empty array
 }
 
 export interface WorkflowOutput {
@@ -54,6 +55,8 @@ export interface IntentMatch {
   workflowName?: string;
   params?: Record<string, string>;
   gwsCommand?: string;
+  gwsParams?: Record<string, unknown>;
+  gwsBody?: Record<string, unknown>;
 }
 
 export interface ChatMessage {

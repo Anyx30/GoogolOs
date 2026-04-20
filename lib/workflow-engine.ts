@@ -60,6 +60,26 @@ function resolveValue(
   stepResultMap: Record<string, unknown>
 ): unknown {
   if (typeof value === 'string') {
+    // Array extraction: {stepId.field[*].subfield} → extracts subfield from each item in field array
+    const arrayMatch = value.match(/^\{(\w+)\.(\w+)\[\*\]\.(\w+)\}$/);
+    if (arrayMatch) {
+      const [, stepId, arrayField, itemField] = arrayMatch;
+      const stepResult = stepResultMap[stepId];
+      if (stepResult && typeof stepResult === 'object' && !Array.isArray(stepResult)) {
+        const arr = (stepResult as Record<string, unknown>)[arrayField];
+        if (Array.isArray(arr)) {
+          return arr
+            .map(item =>
+              typeof item === 'object' && item !== null
+                ? (item as Record<string, unknown>)[itemField]
+                : item
+            )
+            .filter(v => v !== undefined && v !== null);
+        }
+      }
+      return [];
+    }
+
     const substituted = value
       .replace(/\{(\w+)\}/g, (_, key) => resolvedParams[key] ?? '')
       .replace(/\{(\w+)\.(\w+)\}/g, (_, stepId, field) => {
@@ -146,6 +166,8 @@ export async function executeWorkflow(
     } else {
       // Build command parts
       let cmdParts: string[];
+      let resolvedBody: Record<string, unknown> | undefined;
+
       if (step.params !== undefined || step.body !== undefined) {
         cmdParts = step.command.replace(/^gws\s+/, '').split(/\s+/);
         if (step.params) {
@@ -153,7 +175,18 @@ export async function executeWorkflow(
           cmdParts.push('--params', JSON.stringify(resolvedParamObj));
         }
         if (step.body) {
-          const resolvedBody = resolveParamObject(step.body, resolvedParams, stepResultMap);
+          resolvedBody = resolveParamObject(step.body, resolvedParams, stepResultMap);
+
+          // skip_if_empty: skip this step if the named body field resolves to an empty array
+          if (step.skip_if_empty) {
+            const checkField = resolvedBody[step.skip_if_empty];
+            if (Array.isArray(checkField) && checkField.length === 0) {
+              stepResultMap[step.id] = null;
+              stepResults.push({ stepId: step.id, data: null });
+              continue;
+            }
+          }
+
           cmdParts.push('--json', JSON.stringify(resolvedBody));
         }
       } else if (step.args) {

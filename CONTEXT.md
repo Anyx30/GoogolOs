@@ -2,9 +2,9 @@
 
 ## What is this?
 
-GoogolOS is a Google Workspace automation web app. It gives a single user a chat interface to trigger 19 deterministic workflows (Gmail, Calendar, Drive, Docs, Sheets) using natural language, powered by the [GWS CLI](https://github.com/googleworkspace/cli) as the execution engine and Claude as the intent router.
+GoogolOS is a Google Workspace automation web app. Single user, chat interface, triggers workflows via natural language. GWS CLI is the execution engine. Claude Haiku is the intent router and response formatter.
 
-**Current state:** Empty repo. Planning complete. Ready to build.
+**Current state:** Fully built and working locally. Not yet deployed.
 
 ---
 
@@ -14,150 +14,132 @@ GoogolOS is a Google Workspace automation web app. It gives a single user a chat
 /Users/zephyr/Claude-Workspace/projects/GoogolOS/
 ```
 
-Git is initialized. No code written yet — only the plan and this file exist.
-
 ---
 
-## Implementation Plan
-
-Full step-by-step plan is at:
+## Architecture
 
 ```
-/Users/zephyr/Claude-Workspace/projects/GoogolOS/docs/superpowers/plans/2026-04-13-googolos-mvp.md
-```
+app/page.tsx (chat UI + sidebar)
+  └── /api/chat          → SSE stream: intent-router → workflow-engine → response-formatter
+  └── /api/workflow      → GET: list workflows | POST: run by name
 
-Read this file before doing anything else. It has exact file paths, complete code for every step, and test commands.
-
----
-
-## Architecture (summary)
-
-```
-Next.js Web App (App Router)
-  └── Chat UI + Workflow Sidebar
-        │
-        ▼
-Next.js API Routes
-  ├── /api/chat     → SSE stream: intent router → workflow engine → formatter
-  └── /api/workflow → GET: list workflows | POST: run by name
-        │
-        ▼
 lib/
-  ├── gws-runner.ts        → runs `gws` CLI as subprocess, returns parsed JSON
-  ├── workflow-engine.ts   → loads YAML configs, chains gws-runner calls
-  ├── intent-router.ts     → Claude (haiku) maps user message → workflow name + params
-  └── response-formatter.ts → Claude (haiku) formats raw JSON → markdown
-        │
-        ▼
-GWS CLI (authenticated locally via `gws auth login`)
-```
+  ├── gws-runner.ts        → runs gws CLI via execFile, returns parsed JSON
+  ├── workflow-engine.ts   → loads YAML configs, resolves params, chains gws calls
+  ├── intent-router.ts     → Claude Haiku: message → {workflowName, params} or general-command intent
+  ├── response-formatter.ts → Claude Haiku: raw JSON → markdown
+  └── inbox-labeler.ts     → native TS workflow (see Workflows section)
 
-**No database.** GWS CLI stores Google credentials locally. Single user only for MVP.
+workflows/<category>/<name>.yaml  → one file per workflow, no code changes needed to add new ones
+```
 
 ---
 
-## Tech Stack
+## Critical: GWS CLI Format
 
-| Layer | Tech |
+**This differs from training data.** Always use:
+
+```bash
+gws <service> <resource> <method> --params '{"key":"value"}'
+gws drive files copy --params '{"fileId":"abc"}' --json '{"name":"New Name"}'
+```
+
+**Never use** the old flag style: `gws gmail messages list --maxResults 50`
+
+`gws-runner.ts` uses `execFile` (not `exec`) — args passed as array, no shell escaping needed.
+
+---
+
+## Workflows (20 total)
+
+19 standard YAML workflows + 1 native:
+
+| Category | Workflows |
 |---|---|
-| Frontend | Next.js 15 (App Router) |
-| Styling | Tailwind CSS v4 |
-| Chat/streaming | Custom SSE (text/event-stream) |
-| AI | Anthropic Claude API (`@anthropic-ai/sdk`) |
-| GWS integration | `gws` CLI binary (subprocess via `child_process.exec`) |
-| YAML parsing | `js-yaml` |
-| Markdown rendering | `react-markdown` |
-| Testing | Jest + ts-jest |
-| Deployment | Vercel |
+| email | morning-digest, follow-up-sweep, smart-archive, **inbox-labeler** |
+| calendar | meeting-prep-brief, daily-agenda, meeting-follow-up |
+| admin | weekly-standup-report, time-audit, doc-snapshot |
+| client-tracking | sheet-pipeline-updater, client-status-email, onboarding-checklist |
+| docs | proposal-generator, meeting-notes-action-items, doc-summarizer, template-cloner |
+| sheets | expense-categorizer, cross-sheet-consolidator, data-cleanup |
+
+**inbox-labeler** is a native TypeScript workflow (`lib/inbox-labeler.ts`). It cannot be expressed as a YAML workflow because:
+- It requires conditional rule matching (domain → label)
+- It needs array extraction from list results (message IDs) that the YAML engine doesn't support
+- The YAML engine is designed for simple linear GWS CLI call chains, not branching logic
+
+The `/api/workflow` POST route intercepts `inbox-labeler` before the YAML engine and calls `runInboxLabeler()` directly. Its YAML stub (`workflows/email/inbox-labeler.yaml`) exists only for sidebar display and intent routing.
+
+**To extend the YAML engine** to support array passing between steps (enabling labeler-style workflows in YAML), the engine's `resolveValue` and step execution logic in `lib/workflow-engine.ts` would need to handle array outputs from prior steps as inputs to body fields.
 
 ---
 
-## The 19 Workflows
+## Intent Router (`lib/intent-router.ts`)
 
-### Email
-1. `morning-digest` — Summarizes unread emails (last 24h)
-2. `follow-up-sweep` — Sent emails with no reply in 3–7 days
-3. `smart-archive` — Lists newsletters/receipts/notifications to archive
+Two intent types are returned:
 
-### Calendar
-4. `meeting-prep-brief` — Upcoming meeting details + attendees
-5. `daily-agenda` — Today's meetings
-6. `meeting-follow-up` — Draft follow-up after a meeting
+1. **Workflow intent** — `{type: "workflow", workflowName: string, params: Record<string, unknown>}` — matched to a named YAML/native workflow.
+2. **General-command intent** — `{type: "general-command", gwsCommand: "gws <service> <resource> <method>", gwsParams?: Record<string, unknown>, gwsBody?: Record<string, unknown>}` — used as a fallback for ad-hoc GWS queries that don't map to a workflow.
 
-### Admin / Reporting
-7. `weekly-standup-report` — Week's calendar + email summary
-8. `time-audit` — Meeting hours vs. focus time breakdown
-9. `doc-snapshot` — Drive files modified this week
+**GWS resource path rule**: the Claude prompt explicitly teaches that Gmail always requires `users` between the service and the resource (e.g. `gws gmail users messages list`, not `gws gmail messages list`). Other services follow the standard two-segment path.
 
-### Client / Project Tracking
-10. `sheet-pipeline-updater` — Flags stale rows in a Sheets tracker
-11. `client-status-email` — Drafts status update from Sheet + emails
-12. `onboarding-checklist` — Creates Drive folder + Sheet + welcome email
-
-### Google Docs
-13. `proposal-generator` — Copies template Doc, renames for client
-14. `meeting-notes-action-items` — Extracts action items from a Doc
-15. `doc-summarizer` — 5-bullet TL;DR of any Doc
-16. `template-cloner` — Duplicates a template Doc to a Drive folder
-
-### Google Sheets
-17. `expense-categorizer` — Categorized summary of expense rows
-18. `cross-sheet-consolidator` — Consolidates data from a spreadsheet
-19. `data-cleanup` — Flags duplicates, empty fields, formatting issues
-
-**Plus:** General Command mode — ad-hoc natural language → arbitrary GWS CLI command.
+**Params are structured, never inlined**: `gwsParams` and `gwsBody` are returned as separate JSON objects, not concatenated into the command string. The chat route builds CLI args from these fields.
 
 ---
 
-## Key Design Rules
+## Chat Route (`app/api/chat/route.ts`)
 
-- **Claude only does intent routing** — it maps natural language → workflow name. It does NOT freeform-generate actions. All execution is deterministic.
-- **Workflows are YAML configs** — sequences of GWS CLI commands with parameter substitution. No code per workflow.
-- **No DB for MVP** — `gws auth login` handles credentials locally.
-- **SSE streaming** — chat responses stream via Server-Sent Events so status updates appear in real time.
+When executing a `general-command` intent, the route constructs the CLI argument array from the structured `gwsParams`/`gwsBody` fields on the `IntentMatch` object — it does **not** split `gwsCommand` on whitespace. This avoids corrupting embedded JSON that contains spaces.
 
----
-
-## Scalability Path (not for MVP)
-
-When ready for multi-user: add Google OAuth per user + Supabase for token storage. The workflow engine, YAML configs, and chat UI need **zero changes**.
-
----
-
-## How to Start Building
-
-**Your first action in the new session:**
-
+Execution flow for general-command:
 ```
-Use superpowers:subagent-driven-development to implement the plan at:
-/Users/zephyr/Claude-Workspace/projects/GoogolOS/docs/superpowers/plans/2026-04-13-googolos-mvp.md
-
-Working directory: /Users/zephyr/Claude-Workspace/projects/GoogolOS/
-
-Start from Task 1 (Project Scaffold).
+gwsCommand.split(' ')          // ["gws", "<service>", "<resource>", "<method>"]
++ ["--params", JSON.stringify(gwsParams)]   // if gwsParams present
++ ["--json",   JSON.stringify(gwsBody)]     // if gwsBody present
+→ gws-runner.ts execFile call
 ```
 
-The plan has 16 tasks. Each task has:
-- Exact files to create/modify
-- Complete code (no placeholders)
-- Test commands with expected output
-- A git commit at the end
+---
+
+## Key Implementation Decisions
+
+- **`execFile` not `exec`** — avoids shell quoting issues with JSON params
+- **Lazy singleton for Anthropic client** — module-level instantiation breaks Jest mocks; both `intent-router.ts` and `response-formatter.ts` use `let _client = null` pattern
+- **YAML `params:` vs `body:`** — `params` → `--params` (query/path params), `body` → `--json` (request body)
+- **SSE streaming** — custom `ReadableStream` in the chat route, no Vercel AI SDK
+- **Claude Haiku** (`claude-haiku-4-5-20251001`) for all AI calls — fast and cheap for deterministic routing
+- **`IntentMatch` type** (`types/index.ts`) — has optional `gwsParams?: Record<string, unknown>` and `gwsBody?: Record<string, unknown>` fields for general-command intents
 
 ---
 
-## Environment Requirements
+## GWS CLI Auth
 
-Before Task 16 (end-to-end verification), you will need:
-1. `ANTHROPIC_API_KEY` in `.env.local`
-2. GWS CLI installed: `npm install -g @google/gws` (or per official docs)
-3. GWS CLI authenticated: `gws auth login`
+Authenticated as `anik@metaborong.com`.
+
+If token expires or `invalid_rapt` error:
+```bash
+gws auth logout
+gws auth login --scopes "https://www.googleapis.com/auth/gmail.modify,https://www.googleapis.com/auth/gmail.settings.basic,https://www.googleapis.com/auth/calendar,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/tasks"
+```
+
+`gmail.settings.basic` is **not** included in `gws auth login --full` — must be specified explicitly.
 
 ---
 
-## Decision Log
+## Running Locally
 
-- **No DB** — GWS CLI handles auth locally for single-user MVP
-- **Subagent-driven over parallel agents** — plan is mostly sequential; parallel agents would waste tokens re-reading the plan with no file-sharing between agents
-- **Claude Haiku for intent routing and formatting** — cheaper, fast enough for deterministic routing tasks
-- **SSE not Vercel AI SDK streaming** — simpler for this use case; no tool-call overhead
-- **YAML not code for workflows** — keeps workflows config-only, no deployment needed when adding new ones
+```bash
+npm run dev       # starts on localhost:3000
+npm test          # Jest test suite
+npx tsc --noEmit  # type check
+```
+
+Requires `ANTHROPIC_API_KEY` in `.env.local`. If Claude calls return auth errors or credit errors, the key may be pointing to the wrong Anthropic account — replace it with a key from the correct account (one with active credits).
+
+---
+
+## What's Next
+
+1. **Vercel deployment** — GWS CLI runs locally only; cloud deployment needs rethinking (GWS CLI won't be available on Vercel)
+2. **Extend YAML engine** — add array-passing support between steps to enable labeler-style workflows in YAML
+3. **Add new workflows** — drop a YAML in `workflows/<category>/`. No code changes needed unless native logic is required

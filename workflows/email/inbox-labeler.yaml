@@ -1,9 +1,219 @@
 name: inbox-labeler
 label: Inbox Labeler
 category: email
-description: Scans recent unlabeled emails and applies the correct label based on sender and subject rules
+description: Scans inbox emails and applies labels based on sender domain and subject rules
 inputs:
   - name: max_emails
-    description: Maximum number of emails to scan per run
-    default: "200"
-steps: []
+    description: Maximum emails to scan per label category
+    default: "500"
+output:
+  format: summary
+
+steps:
+  # ── Newsletters (skip inbox) ──────────────────────────────────────────────
+  - id: fetch_newsletters
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: >-
+        from:@mail.beehiiv.com OR from:@substack.com OR from:@update.10xresearch.com OR
+        from:@newsletter.trigify.io OR from:@yourstory.com OR from:@news.se.ro OR
+        from:@list.aiprm.com OR from:@medium.com OR from:@cointelegraph.com OR
+        from:@deeplearning.ai OR from:@blockchain-life.com OR from:@ai4conferences.com OR
+        from:@thetechrevolutionforum.com OR from:@radiostud.io OR from:@technextforward.com OR
+        from:@apacdao.net OR from:@akindo.io
+      maxResults: "{max_emails}"
+
+  - id: label_newsletters
+    command: gws gmail users messages batchModify
+    params:
+      userId: "me"
+    body:
+      ids: "{fetch_newsletters.messages[*].id}"
+      addLabelIds:
+        - "Label_18"
+      removeLabelIds:
+        - "INBOX"
+    skip_if_empty: ids
+
+  # ── Ads (skip inbox) ──────────────────────────────────────────────────────
+  - id: fetch_ads
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: "from:@firecrawl.dev OR from:@makemytrip.com OR from:@mybiz-makemytrip.com"
+      maxResults: "{max_emails}"
+
+  - id: label_ads
+    command: gws gmail users messages batchModify
+    params:
+      userId: "me"
+    body:
+      ids: "{fetch_ads.messages[*].id}"
+      addLabelIds:
+        - "Label_1"
+      removeLabelIds:
+        - "INBOX"
+    skip_if_empty: ids
+
+  # ── Events ───────────────────────────────────────────────────────────────
+  - id: fetch_events
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: >-
+        from:@user.luma-mail.com OR from:hello@lu.ma OR from:@ethglobal.com OR
+        from:@events.evion.app OR from:@near.org OR
+        subject:"you are invited" OR subject:conference
+      maxResults: "{max_emails}"
+
+  - id: label_events
+    command: gws gmail users messages batchModify
+    params:
+      userId: "me"
+    body:
+      ids: "{fetch_events.messages[*].id}"
+      addLabelIds:
+        - "Label_16"
+    skip_if_empty: ids
+
+  # ── Finance ───────────────────────────────────────────────────────────────
+  - id: fetch_finance
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: >-
+        from:@razorpay.com OR from:@skydo.com OR from:@hdfcbank.bank.in OR
+        from:@orbitxpay.com OR from:@notifications.mystablecorp.xyz OR from:@refrens.com OR
+        subject:invoice OR subject:"payment receipt"
+      maxResults: "{max_emails}"
+
+  - id: label_finance
+    command: gws gmail users messages batchModify
+    params:
+      userId: "me"
+    body:
+      ids: "{fetch_finance.messages[*].id}"
+      addLabelIds:
+        - "Label_12"
+    skip_if_empty: ids
+
+  # ── Team ──────────────────────────────────────────────────────────────────
+  - id: fetch_team
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: "from:@metaborong.com OR subject:\"leave request\""
+      maxResults: "{max_emails}"
+
+  - id: label_team
+    command: gws gmail users messages batchModify
+    params:
+      userId: "me"
+    body:
+      ids: "{fetch_team.messages[*].id}"
+      addLabelIds:
+        - "Label_14"
+    skip_if_empty: ids
+
+  # ── Legal & Compliance ────────────────────────────────────────────────────
+  - id: fetch_legal
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: "subject:agreement OR subject:contract"
+      maxResults: "{max_emails}"
+
+  - id: label_legal
+    command: gws gmail users messages batchModify
+    params:
+      userId: "me"
+    body:
+      ids: "{fetch_legal.messages[*].id}"
+      addLabelIds:
+        - "Label_15"
+    skip_if_empty: ids
+
+  # ── Clients ───────────────────────────────────────────────────────────────
+  - id: fetch_clients
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: "subject:proposal"
+      maxResults: "{max_emails}"
+
+  - id: label_clients
+    command: gws gmail users messages batchModify
+    params:
+      userId: "me"
+    body:
+      ids: "{fetch_clients.messages[*].id}"
+      addLabelIds:
+        - "Label_13"
+    skip_if_empty: ids
+
+  # ── Travel ────────────────────────────────────────────────────────────────
+  - id: fetch_travel
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: >-
+        from:@sg.booking.com OR subject:"booking confirmation" OR subject:"your itinerary"
+      maxResults: "{max_emails}"
+
+  - id: label_travel
+    command: gws gmail users messages batchModify
+    params:
+      userId: "me"
+    body:
+      ids: "{fetch_travel.messages[*].id}"
+      addLabelIds:
+        - "Label_17"
+    skip_if_empty: ids
+
+  # ── Operations ────────────────────────────────────────────────────────────
+  - id: fetch_operations
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: >-
+        from:workspace-noreply@google.com OR from:googlecloud@google.com OR
+        from:@slack.com OR from:@onsurity.com
+      maxResults: "{max_emails}"
+
+  - id: label_operations
+    command: gws gmail users messages batchModify
+    params:
+      userId: "me"
+    body:
+      ids: "{fetch_operations.messages[*].id}"
+      addLabelIds:
+        - "Label_7162805879955471328"
+    skip_if_empty: ids
+
+  # ── Tools ─────────────────────────────────────────────────────────────────
+  - id: fetch_tools
+    command: gws gmail users messages list
+    params:
+      userId: "me"
+      q: >-
+        from:@e.atlassian.com OR from:@po.atlassian.net OR from:@mail.clickup.com OR
+        from:@email.figma.com OR from:@figma.com OR from:@info.vercel.com OR
+        from:@mail.notion.so OR from:@linear.app OR from:@send.zapier.com OR
+        from:@info.n8n.io OR from:@mail.cursor.com OR from:@mail.trigger.dev OR
+        from:@email.openai.com OR from:@email.claude.com OR from:@gamma.app OR
+        from:@warp.dev OR from:@apify.com OR from:@searchapi.io OR from:@admin.manus.im OR
+        from:@updates.wispr.ai OR from:@mail.wispr.ai OR from:@beautiful.ai OR
+        from:@mail.pencil.dev OR from:@emails.paper.design OR from:@mail.postman.com OR
+        from:@tldv.io OR from:@cal.com OR from:@xetch.studio
+      maxResults: "{max_emails}"
+
+  - id: label_tools
+    command: gws gmail users messages batchModify
+    params:
+      userId: "me"
+    body:
+      ids: "{fetch_tools.messages[*].id}"
+      addLabelIds:
+        - "Label_20"
+    skip_if_empty: ids
